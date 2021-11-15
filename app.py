@@ -29,6 +29,7 @@ fileTypes = (("Text Files", "*.txt"), ("HTML Files", "*.html, *.htm"), ("CSS Fil
 fileEncoding = StringVar(value="utf-8")
 global selected
 selected = False
+finderRecentIDX = "0.0"
 nightModeOn = BooleanVar(value=Config.get("Options", "NightMode"))
 wordWrapOn = IntVar(value=0)
 
@@ -38,30 +39,48 @@ def update_title():
 
 def drop(event):
     if event.data:
+        data = str.removeprefix(event.data, "{")
+        data = data.removesuffix("}")
         if textBox.edit_modified():
             response = messagebox.askyesnocancel("Are you sure?", "Do you want to close the current file without saving?", default="no", icon="warning")
             if(response == True):
-                open_file(event.data)
+                open_file(data)
             elif(response == None):
                 #cancel
                 pass
             else:
                 saved = save_file()
                 if saved:
-                    open_file(event.data)
+                    open_file(data)
         else:
-            open_file(event.data)
+            open_file(data)
 
 def get_file_encoding(path):
     #Open in binary mode to check encoding
     file = open(path, "rb")
-    if(not file.readable()):
-        messagebox.showerror("Error while opening file", "Unable to read file contents.")
+    
+    if check_file_readable(file) == False:
+        file.close()
         return False
+
     content = file.read()
-    encoding = chardet.detect(content)["encoding"]
+    encoding = ""
+    try:
+        encoding = chardet.detect(content)["encoding"]
+    except (UnicodeDecodeError):
+        messagebox.showwarning("Error getting file encoding", "Opening file with utf-8 encoding.")
+        encoding = "utf-8"
     file.close()
     return encoding
+
+def error_open_file():
+    messagebox.showerror("Error while opening file", "Unable to read file contents.")
+
+def check_file_readable(file):
+    if(not file.readable()):
+        error_open_file()
+        return False
+    return True
 
 def check_file_exists(path):
     if(os.path.exists(path)):
@@ -108,12 +127,26 @@ def open_file(path):
     if encoding == False:
         new_file()
         return False
+    elif encoding ==  None:
+        messagebox.showwarning("Error getting file encoding", "Opening file with utf-8 encoding.")
+        encoding = "utf-8"
 
     fileEncoding.set(encoding)
     #Open text file
     text_file = open(filePath, "r", encoding=encoding)
-    
-    content = text_file.read()
+
+    #Check file readable  
+    if check_file_readable(text_file) == False:
+        text_file.close()
+        new_file()
+        return False
+
+    try:
+        content = text_file.read()
+    except UnicodeDecodeError:
+        error_open_file()
+        new_file()
+        return False
     
     textBox.delete("1.0", END)
     textBox.insert(END, content)
@@ -218,9 +251,12 @@ def clear_all():
 def popup_edit_menu(e):
     editMenu.tk_popup(e.x_root, e.y_root)
 
+def textBox_gained_focus(e):
+    textBox.tag_remove('found', '1.0', END)
+
 def finder_gained_focus(e):
     if finderEntry.get() == "Find":
-        finderEntry.delete("1.0", END)
+        finderEntry.delete(0, END)
 
 def finder_lost_focus(e):
     if not finderEntry.get():
@@ -228,46 +264,63 @@ def finder_lost_focus(e):
 
 def finder_close(e=False):
     finderFrame.pack_forget()
+    textBox.focus()
+    textBox_gained_focus(False)
 
 def finder_open(e=False):
+    global finderRecentIDX
     finderFrame.pack(side=RIGHT, anchor=N)
     finderEntry.focus()
+    finderRecentIDX = str(float(textBox.index(INSERT))-1)
 
 def finder_find_in_file(direction):
     #direction can also be an event
-    pos = textBox.search(pattern=textBox.get("1.0", END), backwards=(direction == N), index=textBox.index(INSERT))
-    print(pos)
-
-#def find():
-     
+    #pos = textBox.search(pattern=textBox.get("1.0", END), backwards=(direction == N), index=textBox.index(INSERT))
+    global finderRecentIDX
     # remove tag 'found' from index 1 to END
-    #text.tag_remove('found', '1.0', END)
-     
+    textBox.tag_remove('found', '1.0', END)
+    
     # returns to widget currently in focus
-    #s = edit.get()
-     
-    #if (s):
-        #idx = '1.0'
-        #while 1:
+    s = finderEntry.get()
+    looped = False
+
+    backwards = (direction == N)
+
+    if (s):
+        idx = finderRecentIDX
+        # while 1:
             # searches for desired string from index 1
-            #idx = text.search(s, idx, nocase = 1,
-                            #stopindex = END)
-             
-            #if not idx: break
-             
-            # last index sum of current index and
-            # length of text
-            #lastidx = '% s+% dc' % (idx, len(s))
-             
- 
-            # overwrite 'Found' at idx
-            #text.tag_add('found', idx, lastidx)
-            #idx = lastidx
- 
+        startidx = idx
+        while(1):
+            #print(idx, startidx, finderRecentIDX)
+            idx = textBox.search(s, idx, nocase = 1, backwards=backwards)
+            #print("idx: ",idx)
+            if idx == startidx:
+                if backwards:
+                    idx = str(float(idx)-0.1)
+                else:
+                    idx = str(float(idx)+0.1)
+            else:
+                break
+            
+        # last index sum of current index and
+        # length of text
+        lastidx = '% s+% dc' % (idx, len(s))
+            
+
+        # overwrite 'Found' at idx
+        textBox.tag_add('found', idx, lastidx)
+        textBox.mark_set("insert", lastidx)
+        textBox.see(idx)
+        #idx = lastidx
+        finderRecentIDX = idx
         # mark located string as red
          
-        #text.tag_config('found', foreground ='red')
-    #edit.focus_set()
+        textBox.tag_config('found', foreground ='red')
+    #finderEntry.focus_set()
+
+def find():
+    pass
     
 
 def toggle_night_mode():
@@ -287,7 +340,7 @@ def toggle_night_mode():
     finderFrame.configure(bg=secondary)
     #for slave in finderFrame.slaves():
     #    slave.configure(bg=secondary)
-    finderEntry.configure(bg=primary, fg=textcolor)
+    finderEntry.configure(bg=primary, fg=textcolor, insertbackground=textcolor2)
     finderDown.configure(bg=secondary, fg=textcolor2)
     finderUp.configure(bg=secondary, fg=textcolor2)
     finderClose.configure(bg=secondary, fg=textcolor2)
@@ -311,14 +364,19 @@ def zoom(num):
 #Main Frame
 mainFrame = Frame(window)
 mainFrame.pack(pady=0, expand=True, fill=BOTH)
+#mainFrame.grid(row=0, sticky="news")
+mainFrame.grid_columnconfigure(index=0, weight=1)
+mainFrame.grid_rowconfigure(index=0, weight=1)
 
 #Vertical Scroll Bar
 textScroll = Scrollbar(mainFrame)
-textScroll.pack(side=RIGHT, fill=Y)
+textScroll.grid(row=0, column=1, sticky="nsew")
+#textScroll.pack(side=RIGHT, fill=Y)
 
 #Horizontal Scroll Bar
 textScrollHorizontal = Scrollbar(mainFrame, orient="horizontal")
-textScrollHorizontal.pack(side=BOTTOM, fill=X)
+textScrollHorizontal.grid(row=1, column=0, columnspan=2, sticky="nsew")
+#textScrollHorizontal.pack(side=BOTTOM, fill=X)
 
 #Text Box
 textBox = Text(mainFrame, width=97, height=25, undo=True, wrap="none",
@@ -327,12 +385,14 @@ font=appFont, selectbackground="yellow", selectforeground="black",
 insertwidth=4, tabs="1c")
 textBox.drop_target_register(DND_TEXT, DND_FILES)
 textBox.dnd_bind('<<Drop>>', drop)
-textBox.pack(expand=True, fill=BOTH)
+textBox.bind("<FocusIn>", textBox_gained_focus)
+textBox.grid(row=0, column=0, sticky="nsew")
+#textBox.pack(expand=True, fill=BOTH)
 
 #Frame
 finderFrame = Frame(textBox, cursor="arrow")
 
-finderEntry = Entry(finderFrame, width=32)
+finderEntry = Entry(finderFrame, width=25, font=appFont["family"])
 finderEntry.insert(0, "Find")
 finderEntry.grid(columnspan=3)
 finderEntry.bind("<FocusIn>", finder_gained_focus)
@@ -340,10 +400,10 @@ finderEntry.bind("<FocusOut>", finder_lost_focus)
 finderEntry.bind("<Escape>", finder_close)
 finderEntry.bind("<Return>", finder_find_in_file)
 
-finderUp = Button(finderFrame, text="↑", height=1, relief=FLAT)
+finderUp = Button(finderFrame, text="↑", height=1, relief=FLAT, command=lambda: finder_find_in_file(N))
 finderUp.grid(row=1, column=0, sticky="we")
 
-finderDown = Button(finderFrame, text="↓", relief=FLAT)
+finderDown = Button(finderFrame, text="↓", relief=FLAT, command=lambda: finder_find_in_file(S))
 finderDown.grid(row=1, column=1, sticky="we")
 
 finderClose = Button(finderFrame, text="×", relief=FLAT, command=finder_close)
@@ -353,8 +413,9 @@ finderClose.grid(row=1, column=2, sticky="news")
 textScroll.config(command=textBox.yview)
 textScrollHorizontal.config(command=textBox.xview)
 
-statusFrame = Frame(window)
-statusFrame.pack(expand=False, fill=X)
+statusFrame = Frame(mainFrame)
+#statusFrame.pack(expand=False, fill=X, side=BOTTOM)
+statusFrame.grid(row=2, columnspan=2, sticky="we")
 
 statusLabel = Label(statusFrame, text="Ready", height=1)
 statusLabel.pack(side=RIGHT)
