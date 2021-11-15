@@ -283,7 +283,9 @@ def finder_find_in_file(direction):
         splitResult = idx.split(".",1)
         unit = int(splitResult[0])
         digits = int(splitResult[1])
-        while(1):
+        tries = 0
+        while(tries < 5):
+            tries += 1
             #print(idx, startidx, finderRecentIDX)
             idx = textBox.search(pattern=s, index=idx, nocase = 1, backwards=backwards)
             
