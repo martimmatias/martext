@@ -237,13 +237,17 @@ def popup_edit_menu(e):
 def textBox_gained_focus(e):
     textBox.tag_remove('found', '1.0', END)
 
+def textBox_lost_focus(e):
+    pass
+
 def finder_gained_focus(e):
-    if finderEntry.get() == "Find":
-        finderEntry.delete(0, END)
+    pass
 
 def finder_lost_focus(e):
     if not finderEntry.get():
         finderEntry.insert("0", "Find")
+    textBox_gained_focus(False)
+    textBox.focus()
 
 def finder_close(e=False):
     finderFrame.pack_forget()
@@ -276,15 +280,23 @@ def finder_find_in_file(direction):
         # while 1:
             # searches for desired string from index 1
         startidx = idx
+        splitResult = idx.split(".",1)
+        unit = int(splitResult[0])
+        digits = int(splitResult[1])
         while(1):
             #print(idx, startidx, finderRecentIDX)
             idx = textBox.search(pattern=s, index=idx, nocase = 1, backwards=backwards)
-            #print("idx: ",idx)
+            
             if idx == startidx:
+                splitResult = idx.split(".",1)
+                unit = int(splitResult[0])
+                digits = int(splitResult[1])
+                #print("idx: ",idx, " unit: ",unit, " digits: ", digits)
                 if backwards:
-                    idx = str(float(idx)-0.1)
+                    digits -= 1
                 else:
-                    idx = str(float(idx)+0.1)
+                    digits += 1
+                idx = str(unit)+"."+str(digits)
             else:
                 break
         
@@ -407,6 +419,7 @@ insertwidth=4, tabs="1c")
 textBox.drop_target_register(DND_TEXT, DND_FILES)
 textBox.dnd_bind('<<Drop>>', drop)
 textBox.bind("<FocusIn>", textBox_gained_focus)
+textBox.bind("<FocusOut>", textBox_lost_focus)
 textBox.grid(row=0, column=0, sticky="nsew")
 #textBox.pack(expand=True, fill=BOTH)
 
