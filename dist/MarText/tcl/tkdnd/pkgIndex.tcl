@@ -1,6 +1,7 @@
-#
-# Tcl package index file
-#
-package ifneeded tkdnd 2.8 \
+package ifneeded tkdnd 2.9.2 \
   "source \{$dir/tkdnd.tcl\} ; \
-   tkdnd::initialise \{$dir\} tkdnd28.dll tkdnd"
+   tkdnd::initialise \{$dir\} libtkdnd2.9.2[info sharedlibextension] tkdnd"
+
+package ifneeded tkdnd::utils 2.9.2 \
+  "source \{$dir/tkdnd_utils.tcl\} ; \
+   package provide tkdnd::utils 2.9.2"
