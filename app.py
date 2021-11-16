@@ -1,6 +1,7 @@
 import enum
 from tkinter import *
 from tkinter import filedialog, messagebox
+import tkinter
 from tkinter.font import Font
 from TkinterDnD2 import *
 from sys import argv
@@ -33,7 +34,6 @@ fileEncoding = StringVar(value="utf-8")
 global selected
 selected = False
 finderRecentIDX = "0.0"
-nightModeOn = BooleanVar()
 wordWrapOn = IntVar(value=0)
 
 def update_title():
@@ -320,7 +320,7 @@ def finder_find_in_file(direction):
 
 def toggle_night_mode():
     currentTheme = "LightMode"
-    if(nightModeOn.get() == True):
+    if(appOptions["nightmode"].get() == True):
         currentTheme = "NightMode"
     colors = appColors[currentTheme]
 
@@ -333,9 +333,9 @@ def toggle_night_mode():
     finderDown.configure(bg=colors["maindark"], fg=colors["uitext"])
     finderUp.configure(bg=colors["maindark"], fg=colors["uitext"])
     finderClose.configure(bg=colors["maindark"], fg=colors["uitext"])
-    mainFrame.config(bg=colors["main"])
+    mainFrame.config(bg=colors["maindark"])
     textBox.config(bg=colors["main"], fg=colors["textboxtext"], insertbackground=colors["insert"])
-    textBox.tag_config('found', foreground=colors["textboxfoundtext"])
+    textBox.tag_config('found', foreground=colors["textboxfoundtext"], background=colors["textboxfoundbg"])
     fileMenu.config(bg=colors["maindark"], fg=colors["textboxtext"], selectcolor=colors["menusselect"])
     editMenu.config(bg=colors["maindark"], fg=colors["textboxtext"], selectcolor=colors["menusselect"])
     optionsMenu.config(bg=colors["maindark"], fg=colors["textboxtext"], selectcolor=colors["menusselect"])
@@ -364,12 +364,17 @@ def exit_program():
     save_app_config()
     Config.write(configFile)
     configFile.close()
+    #recentFiles = open(martextPath+"recentfiles.txt")
+    #recentFiles.writelines(["test.txt"])
+    #recentFiles.close()
     window.quit()
 
 def save_app_config():
     for i, option in enumerate(Config.options("Options")):
-        Config.set("Options", option, appOptions[option])
-    Config.set("Options", "NightMode", str(nightModeOn.get()))
+        if not appOptions[option] is str:
+            Config.set("Options", option, str(appOptions[option].get()))
+        else:
+            Config.set("Options", option, appOptions[option])
     #for i, option in enumerate(Config.options("NightMode")):
         #Config.set("NightMode", option, appColors["NightMode"][option])
 
@@ -384,7 +389,7 @@ def load_app_options():
     section = "Options"
     for option in Config.options(section):
         appOptions[option] = Config.get(section, option)
-    nightModeOn.set(appOptions["nightmode"])
+    appOptions["nightmode"] = BooleanVar(value=appOptions["nightmode"])
 
 def load_app_config():
     load_app_colors("NightMode")
@@ -492,7 +497,7 @@ editMenu.add_command(label="Clear", command=lambda: clear_all())
 #options menu
 optionsMenu = Menu(window, tearoff=False)
 menu.add_cascade(menu=optionsMenu, label="Options")
-optionsMenu.add_checkbutton(label="Night Mode", command=toggle_night_mode, variable=nightModeOn)
+optionsMenu.add_checkbutton(label="Night Mode", command=toggle_night_mode, variable=appOptions["nightmode"])
 #optionsMenu.add_command(label="About")
 #optionsMenu.add_checkbutton(label="Word Wrap", command=toggle_word_wrap, variable=wordWrapOn)
 
