@@ -5,6 +5,7 @@ import tkinter
 from tkinter.font import Font
 from TkinterDnD2 import *
 from sys import argv
+from datetime import datetime
 import os
 import chardet
 import configparser
@@ -24,6 +25,7 @@ appTitleSeparator = " - "
 appFont = Font(family="Helvetica", size = 16)
 appZoom = IntVar()
 appColors = {}
+appStatus = StringVar(value="Loading")
 appOptions = {}
 fileName = "New Text File"
 filePath = ""
@@ -114,11 +116,12 @@ def new_file(e=False):
     textBox.delete("1.0", END)
     #reset undo redo stack
     textBox.edit_modified(False)
-    statusLabel.config(text="New File")
+    statusPath.config(text="New File")
     filePath = ""
     fileName = "New Text File"
     fileEncoding.set("utf-8")
     update_title()
+    appStatus.set("Opened New File")
 
 def open_file(path):
     global filePath
@@ -130,7 +133,7 @@ def open_file(path):
         return
     filePath = path
     fileName = os.path.basename(filePath)
-    statusLabel.config(text=filePath)
+    statusPath.config(text=filePath)
     update_title()
 
     #Get encoding
@@ -144,6 +147,7 @@ def open_file(path):
 
     fileEncoding.set(encoding)
     #Open text file
+    appStatus.set("Opening..")
     text_file = open(filePath, "r", encoding=encoding)
 
     #Check file readable  
@@ -164,6 +168,7 @@ def open_file(path):
     #reset undo redo stack
     textBox.edit_modified(False)
     text_file.close()
+    appStatus.set("Opened File")
     #add to recent files history
     insert_file_history(filePath)
     return True
@@ -181,8 +186,10 @@ def save_file(e = False):
     global fileEncoding
     if filePath:
         #save the file
+        appStatus.set("Saving..")
         text_file = open(filePath, 'w', encoding=fileEncoding.get())
         text_file.write(textBox.get(1.0, END))
+        appStatus.set("Saved File "+datetime.now().strftime("%H:%M:%S"))
         text_file.close()
         return True
     else:
@@ -200,12 +207,14 @@ def save_as_file(e = False):
         return False
     filePath = text_file
     fileName = os.path.basename(filePath)
-    statusLabel.config(text=filePath)
+    statusPath.config(text=filePath)
     update_title()
+    appStatus.set("Saving..")
     #save the file
     text_file = open(filePath, 'w', encoding=fileEncoding.get())
     text_file.write(textBox.get(1.0, END))
     text_file.close()
+    appStatus.set("Saved File as"+datetime.now().strftime("%H:%M:%S"))
     #add file to recent file history
     insert_file_history(filePath)
     return True
@@ -432,6 +441,7 @@ def load_app():
     except Exception:
         recentFiles = []
         pass
+    appStatus.set("Ready")
 
 def zoom(num):
     appFont.configure(size=num)
@@ -496,8 +506,11 @@ statusFrame = Frame(mainFrame)
 #statusFrame.pack(expand=False, fill=X, side=BOTTOM)
 statusFrame.grid(row=2, columnspan=2, sticky="we")
 
-statusLabel = Label(statusFrame, text="Ready", height=1)
-statusLabel.pack(side=RIGHT)
+statusPath = Label(statusFrame, text="FILE PATH", height=1)
+statusPath.pack(side=RIGHT)
+
+statusLabel = Label(statusFrame, textvariable=appStatus, height=1)
+statusLabel.pack(side=LEFT)
 
 statusEncoding = Label(statusFrame, height=1, textvariable=fileEncoding)
 statusEncoding.pack(side=RIGHT)
