@@ -351,6 +351,7 @@ def toggle_night_mode():
     textBox.tag_config('found', foreground=colors["textboxfoundtext"], background=colors["textboxfoundbg"])
     fileMenu.config(bg=colors["maindark"], fg=colors["textboxtext"], selectcolor=colors["menusselect"])
     editMenu.config(bg=colors["maindark"], fg=colors["textboxtext"], selectcolor=colors["menusselect"])
+    fileRecentMenu.config(bg=colors["maindark"], fg=colors["textboxtext"], selectcolor=colors["menusselect"])
     optionsMenu.config(bg=colors["maindark"], fg=colors["textboxtext"], selectcolor=colors["menusselect"])
 
 def toggle_word_wrap():
