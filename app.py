@@ -31,6 +31,7 @@ fileTypes = (("Text Files", "*.txt"), ("HTML Files", "*.html, *.htm"), ("CSS Fil
 ("Javascript Files", "*.js"), ("Python Files", "*.py, *.pyw"),("Lua Files", "*.lua"),
 ("Markdown", "*.markdown *.md *.mdtext"), ("All Files", "*.*"))
 fileEncoding = StringVar(value="utf-8")
+fileHistory = []
 global selected
 selected = False
 finderRecentIDX = "0.0"
@@ -77,6 +78,14 @@ def get_file_encoding(path):
 
 def error_open_file():
     messagebox.showerror("Error while opening file", "Unable to read file contents.")
+
+def insert_file_history(path):
+    if not path in fileHistory:
+        if len(fileHistory) > 10:
+            fileRecentMenu.deletecommand(fileHistory[-1])
+            fileHistory.pop()
+        fileHistory.insert(0, path)
+        fileRecentMenu.add_command(label=path, command=lambda: open_file(path))
 
 def check_file_readable(file):
     if(not file.readable()):
@@ -155,6 +164,8 @@ def open_file(path):
     #reset undo redo stack
     textBox.edit_modified(False)
     text_file.close()
+    #add to recent files history
+    insert_file_history(filePath)
     return True
 
 def open_file_prompt(e):
@@ -195,6 +206,8 @@ def save_as_file(e = False):
     text_file = open(filePath, 'w', encoding=fileEncoding.get())
     text_file.write(textBox.get(1.0, END))
     text_file.close()
+    #add file to recent file history
+    insert_file_history(filePath)
     return True
 
 def cut_text(e):
@@ -360,13 +373,7 @@ def exit_program():
             saved = save_file()
             if not saved:
                 return False
-    configFile = open(martextPath+"data\\config.ini", "w")
-    save_app_config()
-    Config.write(configFile)
-    configFile.close()
-    #recentFiles = open(martextPath+"recentfiles.txt")
-    #recentFiles.writelines(["test.txt"])
-    #recentFiles.close()
+    closed = save_app()
     window.quit()
 
 def save_app_config():
@@ -377,6 +384,19 @@ def save_app_config():
             Config.set("Options", option, appOptions[option])
     #for i, option in enumerate(Config.options("NightMode")):
         #Config.set("NightMode", option, appColors["NightMode"][option])
+
+def save_app():
+    configFile = open(martextPath+"data\\config.ini", 'w')
+    save_app_config()
+    Config.write(configFile)
+    configFile.close()
+    recentFiles = open(martextPath+"recentfiles.txt", 'w')
+    for path in fileHistory:
+        recentFiles.write(path+"\n")
+    #recentFiles.writelines(fileHistory)
+    recentFiles.close()
+    return True
+
 
 def load_app_colors(section):
     #global appColors
@@ -396,7 +416,22 @@ def load_app_config():
     load_app_colors("LightMode")
     load_app_options()
     
-load_app_config()
+def load_app():
+    load_app_config()
+    try:
+        recentFiles = open(martextPath+"recentfiles.txt", 'r')
+        fileHistory = recentFiles.readlines()
+        print("FILE HISTORY\n")
+        for path in fileHistory:
+            path = path.removesuffix("\n")
+            print(path)
+            insert_file_history(path)
+        print("---\n")
+        recentFiles.close()
+    except Exception:
+        recentFiles = []
+        pass
+
 def zoom(num):
     appFont.configure(size=num)
     pass 
@@ -477,10 +512,14 @@ fileMenu = Menu(window)
 menu.add_cascade(label="File", menu=fileMenu)
 fileMenu.add_command(label="New", command=lambda: new_file(True), accelerator="(Ctrl+N)")
 fileMenu.add_command(label="Open", command=lambda: open_file_prompt(False), accelerator="(Ctrl+O)")
+fileRecentMenu = Menu(window, tearoff=False)
+fileMenu.add_cascade(label="Open Recent", menu=fileRecentMenu)
 fileMenu.add_command(label="Save", command=lambda: save_file(False), accelerator="(Ctrl+S)")
 fileMenu.add_command(label="Save as", command=lambda: save_as_file(False), accelerator="(Ctrl+Shift+S)")
 fileMenu.add_separator()
 fileMenu.add_command(label="Exit", command=exit_program)
+
+load_app()
 #edit menu
 editMenu = Menu(window)
 menu.add_cascade(menu=editMenu, label="Edit")
