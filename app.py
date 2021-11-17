@@ -13,7 +13,6 @@ import configparser
 martextPath = __file__+"\\..\\"
 
 Config = configparser.ConfigParser()
-Config.read(martextPath+"data\\config.ini")
 
 window = TkinterDnD.Tk()
 window.iconbitmap(martextPath+"imgs\\paperfeatherAllSizes.ico")
@@ -82,6 +81,7 @@ def error_open_file():
     messagebox.showerror("Error while opening file", "Unable to read file contents.")
 
 def insert_file_history(path):
+    path = path.replace("\\", "/")
     if not path in fileHistory:
         if len(fileHistory) > 10:
             fileRecentMenu.deletecommand(fileHistory[-1])
@@ -422,6 +422,7 @@ def load_app_options():
     appOptions["nightmode"] = BooleanVar(value=appOptions["nightmode"])
 
 def load_app_config():
+    Config.read(martextPath+"data\\config.ini")
     load_app_colors("NightMode")
     load_app_colors("LightMode")
     load_app_options()
