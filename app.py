@@ -19,6 +19,7 @@ window.iconbitmap(martextPath+"imgs\\paperfeatherAllSizes.ico")
 window.title("MartText")
 window.geometry("1280x720+200+200")
 
+appVersion = "1.2.5"
 appTitle = "MarText"
 appTitleSeparator = " - "
 appFont = Font(family="Helvetica", size = 16)
@@ -255,6 +256,9 @@ def clear_all():
 
 def popup_edit_menu(e):
     editMenu.tk_popup(e.x_root, e.y_root)
+
+def show_about():
+    messagebox.showinfo("About", "MarText is a text editor developed in python by MartimDev.\nVersion "+appVersion)
 
 def textBox_gained_focus(e):
     textBox.tag_remove('found', '1.0', END)
@@ -552,7 +556,7 @@ editMenu.add_command(label="Clear", command=lambda: clear_all())
 optionsMenu = Menu(window, tearoff=False)
 menu.add_cascade(menu=optionsMenu, label="Options")
 optionsMenu.add_checkbutton(label="Night Mode", command=toggle_night_mode, variable=appOptions["nightmode"])
-#optionsMenu.add_command(label="About")
+optionsMenu.add_command(label="About", command=show_about)
 #optionsMenu.add_checkbutton(label="Word Wrap", command=toggle_word_wrap, variable=wordWrapOn)
 
 #Edit Bindings
